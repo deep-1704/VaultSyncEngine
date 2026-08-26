@@ -22,20 +22,18 @@ public class DeviceController {
     @GetMapping("")
     public ResponseEntity<List<Device>> getDevices(
             Authentication authentication,
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) Long credId
+            @RequestParam(required = false) String username
     ){
-        List<Device> devices;
-        if(username == null && credId == null){
-            username = authentication.getName();
-            devices = deviceService.getDevicesByOwner(username);
-        } else if (username == null){
-            devices = deviceService.getDevicesWithCred(credId);
-        } else if(credId == null){
-            devices = deviceService.getDevicesByOwner(username);
-        } else {
-            devices = deviceService.getDevicesWithCred(credId, username);
-        }
+        if(username == null) username = authentication.getName();
+
+        List<Device> devices = deviceService.getDevicesByOwner(username);
+
+        return ResponseEntity.ok(devices);
+    }
+
+    @GetMapping("/shared/{sharedCredId}")
+    public ResponseEntity<List<Device>> getDevicesWithSharedCred(@PathVariable Long sharedCredId){
+        List<Device> devices = deviceService.getDevicesByShareId(sharedCredId);
 
         return ResponseEntity.ok(devices);
     }

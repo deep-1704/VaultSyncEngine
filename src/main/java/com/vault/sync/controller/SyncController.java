@@ -49,4 +49,6 @@ public class SyncController {
         List<SyncItem> credentials = syncService.getSyncedCredentials(deviceId);
         return ResponseEntity.ok(credentials);
     }
+
+
 }
