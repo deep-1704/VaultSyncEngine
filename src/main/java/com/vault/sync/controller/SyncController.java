@@ -2,7 +2,6 @@ package com.vault.sync.controller;
 
 import com.vault.sync.entity.Credential;
 import com.vault.sync.entity.SyncItem;
-import com.vault.sync.entity.apientity.DeviceCredential;
 import com.vault.sync.service.CredentialService;
 import com.vault.sync.service.SyncService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +28,14 @@ public class SyncController {
     }
 
     @PostMapping("")
-    public ResponseEntity<Void> syncCredToDevices(@RequestBody List<DeviceCredential> deviceCredentials, Authentication authentication){
+    public ResponseEntity<Credential> syncCredToDevices(
+            @RequestBody List<SyncItem> syncItems,
+            Authentication authentication
+    ){
+        if(!checkSyncDevices(syncItems, authentication.getName())){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+        }
+
         Credential credential = new Credential();
         credential.setOwner(authentication.getName());
 
@@ -38,17 +44,32 @@ public class SyncController {
             return ResponseEntity.notFound().build();
         }
 
-        for(DeviceCredential dv : deviceCredentials) dv.credential().setId(credential.getId());
-        syncService.syncDevices(deviceCredentials);
+        for(SyncItem si : syncItems) si.setCredentialId(credential.getId());
+        syncService.syncDevices(syncItems);
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.ok(credential);
     }
 
     @GetMapping("/{deviceId}")
-    public ResponseEntity<List<SyncItem>> getSyncedCredentials(@PathVariable String deviceId){
+    public ResponseEntity<List<SyncItem>> getSyncedCredentials(
+            @PathVariable String deviceId,
+            Authentication authentication
+    ){
         List<SyncItem> credentials = syncService.getSyncedCredentials(deviceId);
+        if(!checkSyncDevices(credentials, authentication.getName())){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+        }
+
         return ResponseEntity.ok(credentials);
     }
 
+    private boolean checkSyncDevices(List<SyncItem> syncItems, String username){
+        List<String> deviceIds = syncItems
+                .stream()
+                .map(SyncItem::getDeviceId)
+                .toList();
+
+        return syncService.checkDeviceBelongsToUser(deviceIds, username);
+    }
 
 }

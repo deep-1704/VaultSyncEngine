@@ -2,39 +2,29 @@ package com.vault.sync.service;
 
 import com.vault.sync.entity.Device;
 import com.vault.sync.entity.SyncItem;
-import com.vault.sync.entity.apientity.DeviceCredential;
 import com.vault.sync.repository.DeviceRepository;
 import com.vault.sync.repository.SyncItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class SyncService {
-    private final DeviceRepository deviceRepository;
     private final SyncItemRepository syncItemRepository;
+    private final DeviceRepository deviceRepository;
 
     @Autowired
     public SyncService(
-            DeviceRepository _deviceRepository,
-            SyncItemRepository _syncItemRepository
+            SyncItemRepository _syncItemRepository,
+            DeviceRepository _deviceRepository
     ){
-        this.deviceRepository = _deviceRepository;
         this.syncItemRepository = _syncItemRepository;
+        this.deviceRepository = _deviceRepository;
     }
 
-    public void syncDevices(List<DeviceCredential> deviceCredentials){
-        List<SyncItem> syncItems = deviceCredentials.stream()
-                .map(deviceCredential ->
-                    new SyncItem(
-                        deviceCredential.device().getId(),
-                        deviceCredential.credential().getId(),
-                        deviceCredential.content()
-                    )
-                )
-                .toList();
-
+    public void syncDevices(List<SyncItem> syncItems){
         syncItemRepository.saveAll(syncItems);
     }
 
@@ -42,4 +32,12 @@ public class SyncService {
         return syncItemRepository.findAllByDeviceId(deviceId);
     }
 
+    public boolean checkDeviceBelongsToUser(List<String> deviceIds, String username){
+        List<Device> devices = deviceRepository.findAllByIdIn(deviceIds);
+
+        for(Device d : devices){
+            if(!Objects.equals(d.getOwner(), username)) return false;
+        }
+        return true;
+    }
 }
