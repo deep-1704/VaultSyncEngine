@@ -20,6 +20,8 @@ public class SyncItem {
         this.content = content;
     }
 
+    public SyncItem() {}
+
     public String getDeviceId() {
         return deviceId;
     }

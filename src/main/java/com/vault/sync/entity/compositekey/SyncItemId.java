@@ -7,6 +7,8 @@ public class SyncItemId implements Serializable {
     private String deviceId;
     private Long credentialId;
 
+    public SyncItemId(){}
+
     public SyncItemId(String deviceId, Long credentialId) {
         this.deviceId = deviceId;
         this.credentialId = credentialId;

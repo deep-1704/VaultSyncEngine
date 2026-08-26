@@ -42,4 +42,8 @@ public class SyncService {
         syncItemRepository.saveAll(syncItems);
     }
 
+    public List<SyncItem> getSyncedCredentials(String deviceId){
+        return syncItemRepository.findAllByDeviceId(deviceId);
+    }
+
 }
