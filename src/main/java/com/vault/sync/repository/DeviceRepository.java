@@ -9,4 +9,6 @@ public interface DeviceRepository extends JpaRepository<Device, String> {
 
     List<Device> findAllByOwner(String owner);
 
+    List<Device> findAllByIdIn(List<String> deviceIds);
+
 }

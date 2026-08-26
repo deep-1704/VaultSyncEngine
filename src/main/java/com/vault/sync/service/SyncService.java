@@ -24,10 +24,6 @@ public class SyncService {
         this.syncItemRepository = _syncItemRepository;
     }
 
-    public List<Device> getDevicesByOwner(String username){
-        return deviceRepository.findAllByOwner(username);
-    }
-
     public void syncDevices(List<DeviceCredential> deviceCredentials){
         List<SyncItem> syncItems = deviceCredentials.stream()
                 .map(deviceCredential ->
