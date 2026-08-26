@@ -19,12 +19,6 @@ public class DeviceController {
         this.deviceService = _deviceService;
     }
 
-    @GetMapping("/{username}")
-    public ResponseEntity<List<Device>> getDevicesByUsername(@PathVariable String username){
-        List<Device> devices = deviceService.getDevicesByOwner(username);
-        return ResponseEntity.ok(devices);
-    }
-
     @GetMapping("")
     public ResponseEntity<List<Device>> getDevices(
             Authentication authentication,
