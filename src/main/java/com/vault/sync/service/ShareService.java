@@ -23,10 +23,6 @@ public class ShareService {
         this.shareItemRepository = shareItemRepository;
     }
 
-    public SharedCredential createSharedCredential(SharedCredential sharedCredential){
-        return sharedCredentialRepository.save(sharedCredential);
-    }
-
     public void createShareEntries(List<ShareItem> shareItems){
         shareItemRepository.saveAll(shareItems);
     }

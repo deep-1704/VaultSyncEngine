@@ -3,6 +3,7 @@ package com.vault.sync.controller;
 import com.vault.sync.entity.ShareItem;
 import com.vault.sync.entity.SharedCredential;
 import com.vault.sync.service.ShareService;
+import com.vault.sync.service.SharedCredentialService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +17,12 @@ import java.util.Objects;
 @RequestMapping("/share")
 public class ShareController {
     private final ShareService shareService;
+    private final SharedCredentialService sharedCredentialService;
 
     @Autowired
-    public ShareController(ShareService shareService) {
+    public ShareController(ShareService shareService, SharedCredentialService sharedCredentialService) {
         this.shareService = shareService;
+        this.sharedCredentialService = sharedCredentialService;
     }
 
     @PostMapping("/{username}")
@@ -29,14 +32,29 @@ public class ShareController {
             Authentication authentication
     ){
         String authenticatedUser = authentication.getName();
+
+        // Check if sharing to itself
         if(Objects.equals(authenticatedUser, username)){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
         }
 
-        // Create a new Shared Credential
-        SharedCredential credential = shareService.createSharedCredential(
-                new SharedCredential(authenticatedUser)
-        );
+        // Check if sharing other user's credentials
+        if(!sharedCredentialService.isOwner(
+                shareItems.stream().map(ShareItem::getSharedCredId).toList(),
+                authenticatedUser
+        )){
+            return ResponseEntity.badRequest().build();
+        }
+
+        SharedCredential credential = new SharedCredential(authenticatedUser);
+
+        if(shareItems.isEmpty()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+
+        credential.setId(shareItems.getFirst().getSharedCredId());
+        if(credential.getId() == null) credential = sharedCredentialService.createSharedCredential(credential);
+        else if(!sharedCredentialService.checkSharedCredentialExitsById(credential.getId())){
+            return ResponseEntity.notFound().build();
+        }
 
         for(ShareItem si: shareItems) si.setSharedCredId(credential.getId());
 

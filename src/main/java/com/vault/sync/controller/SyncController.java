@@ -39,6 +39,10 @@ public class SyncController {
         Credential credential = new Credential();
         credential.setOwner(authentication.getName());
 
+        if(syncItems.isEmpty()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+
+        credential.setId(syncItems.getFirst().getCredentialId());
+
         if(credential.getId() == null) credential = credentialService.createCredential(credential);
         else if(!credentialService.existsById(credential.getId())) {
             return ResponseEntity.notFound().build();
