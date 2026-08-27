@@ -1,7 +1,9 @@
 package com.vault.sync.controller;
 
+import com.vault.sync.entity.Device;
 import com.vault.sync.entity.ShareItem;
 import com.vault.sync.entity.SharedCredential;
+import com.vault.sync.service.DeviceService;
 import com.vault.sync.service.ShareService;
 import com.vault.sync.service.SharedCredentialService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -18,11 +22,17 @@ import java.util.Objects;
 public class ShareController {
     private final ShareService shareService;
     private final SharedCredentialService sharedCredentialService;
+    private final DeviceService deviceService;
 
     @Autowired
-    public ShareController(ShareService shareService, SharedCredentialService sharedCredentialService) {
+    public ShareController(
+            ShareService shareService,
+            SharedCredentialService sharedCredentialService,
+            DeviceService deviceService
+    ) {
         this.shareService = shareService;
         this.sharedCredentialService = sharedCredentialService;
+        this.deviceService = deviceService;
     }
 
     @PostMapping("/{username}")
@@ -61,5 +71,37 @@ public class ShareController {
         // Add a shareEntry per device
         shareService.createShareEntries(shareItems);
         return ResponseEntity.ok(credential);
+    }
+
+    @DeleteMapping("/{sharedCredId}")
+    public ResponseEntity<Void> deleteSharedCredential(
+            @PathVariable Long sharedCredId,
+            @RequestParam(required = false) String deviceId,
+            Authentication authentication
+    ){
+        String authenticatedUser = authentication.getName();
+        String sharedCredOwner = sharedCredentialService.getOwnerWithId(sharedCredId);
+        if(sharedCredOwner == null){
+            return ResponseEntity.badRequest().build();
+        }
+
+        if(sharedCredOwner.equals(authenticatedUser)){
+            shareService.deleteAllShareEntriesById(sharedCredId);
+            return ResponseEntity.noContent().build();
+        }
+
+        if(deviceId != null){
+            shareService.deleteSharedCredInDevices(
+                    sharedCredId,
+                    new ArrayList<>(List.of(deviceId))
+            );
+            return ResponseEntity.noContent().build();
+        }
+
+        List<Device> userDevices = deviceService.getDevicesByOwner(authenticatedUser);
+        List<String> deviceIds = userDevices.stream().map(Device::getId).toList();
+
+        shareService.deleteSharedCredInDevices(sharedCredId, deviceIds);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -2,6 +2,7 @@ package com.vault.sync.service;
 
 import com.vault.sync.entity.ShareItem;
 import com.vault.sync.entity.SharedCredential;
+import com.vault.sync.entity.compositekey.ShareItemId;
 import com.vault.sync.repository.ShareItemRepository;
 import com.vault.sync.repository.SharedCredentialRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,5 +26,16 @@ public class ShareService {
 
     public void createShareEntries(List<ShareItem> shareItems){
         shareItemRepository.saveAll(shareItems);
+    }
+
+    public void deleteAllShareEntriesById(Long sharedCredId){
+        shareItemRepository.deleteAllBySharedCredId(sharedCredId);
+    }
+
+    public void deleteSharedCredInDevices(Long sharedCredId, List<String> deviceId){
+        List<ShareItemId> ids = deviceId.stream()
+                .map(id -> new ShareItemId(id, sharedCredId)).toList();
+
+        shareItemRepository.deleteAllById(ids);
     }
 }

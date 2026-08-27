@@ -33,4 +33,10 @@ public class SharedCredentialService {
 
         return true;
     }
+
+    public String getOwnerWithId(Long sharedCredId){
+        SharedCredential sharedCredential = sharedCredentialRepository.findById(sharedCredId).orElse(null);
+        if(sharedCredential != null) return sharedCredential.getOwner();
+        return null;
+    }
 }
