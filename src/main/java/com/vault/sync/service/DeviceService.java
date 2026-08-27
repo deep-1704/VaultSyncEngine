@@ -29,4 +29,13 @@ public class DeviceService {
         List<String> deviceIds = shareItemRepository.findDeviceIdsBySharedCredId(sharedCredId);
         return deviceRepository.findAllByIdIn(deviceIds);
     }
+
+    public boolean checkDeviceBelongsToUser(List<String> deviceIds, String username){
+        List<Device> devices = deviceRepository.findAllByIdIn(deviceIds);
+
+        for(Device d : devices){
+            if(!Objects.equals(d.getOwner(), username)) return false;
+        }
+        return true;
+    }
 }

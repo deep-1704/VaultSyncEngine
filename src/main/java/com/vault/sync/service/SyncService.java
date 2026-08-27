@@ -13,15 +13,10 @@ import java.util.Objects;
 @Service
 public class SyncService {
     private final SyncItemRepository syncItemRepository;
-    private final DeviceRepository deviceRepository;
 
     @Autowired
-    public SyncService(
-            SyncItemRepository _syncItemRepository,
-            DeviceRepository _deviceRepository
-    ){
+    public SyncService(SyncItemRepository _syncItemRepository){
         this.syncItemRepository = _syncItemRepository;
-        this.deviceRepository = _deviceRepository;
     }
 
     public void syncDevices(List<SyncItem> syncItems){
@@ -32,12 +27,7 @@ public class SyncService {
         return syncItemRepository.findAllByDeviceId(deviceId);
     }
 
-    public boolean checkDeviceBelongsToUser(List<String> deviceIds, String username){
-        List<Device> devices = deviceRepository.findAllByIdIn(deviceIds);
-
-        for(Device d : devices){
-            if(!Objects.equals(d.getOwner(), username)) return false;
-        }
-        return true;
+    public void deleteSyncEntries(List<String> deviceIds, Long credId){
+        syncItemRepository.deleteByCredentialIdAndDeviceIdIn(credId, deviceIds);
     }
 }

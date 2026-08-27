@@ -1,8 +1,10 @@
 package com.vault.sync.controller;
 
 import com.vault.sync.entity.Credential;
+import com.vault.sync.entity.Device;
 import com.vault.sync.entity.SyncItem;
 import com.vault.sync.service.CredentialService;
+import com.vault.sync.service.DeviceService;
 import com.vault.sync.service.SyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -17,14 +21,17 @@ import java.util.List;
 public class SyncController {
     private final SyncService syncService;
     private final CredentialService credentialService;
+    private final DeviceService deviceService;
 
     @Autowired
     public SyncController(
             SyncService _syncService,
-            CredentialService _credentialService
+            CredentialService _credentialService,
+            DeviceService _deviceService
     ){
         this.syncService = _syncService;
         this.credentialService = _credentialService;
+        this.deviceService = _deviceService;
     }
 
     @PostMapping("")
@@ -67,13 +74,43 @@ public class SyncController {
         return ResponseEntity.ok(credentials);
     }
 
+    @DeleteMapping("/{credId}")
+    public ResponseEntity<Void> deleteSyncedCredential(
+            @PathVariable Long credId,
+            @RequestParam(required = false) String deviceId,
+            Authentication authentication
+    ){
+        String authenticatedUser = authentication.getName();
+
+        List<String> deviceIds = new ArrayList<>();
+        List<Long> credIds = new ArrayList<>(Collections.singletonList(credId));
+
+        if(deviceId != null) deviceIds.add(deviceId);
+        else{
+            deviceIds = deviceService.getDevicesByOwner(authenticatedUser)
+                    .stream()
+                    .map(Device::getId)
+                    .toList();
+        }
+
+        if(
+                !deviceService.checkDeviceBelongsToUser(deviceIds, authenticatedUser)
+                || !credentialService.checkCredBelongsToUser(credIds, authenticatedUser)
+        ){
+            return ResponseEntity.badRequest().build();
+        }
+
+        syncService.deleteSyncEntries(deviceIds, credId);
+        return ResponseEntity.noContent().build();
+    }
+
     private boolean checkSyncDevices(List<SyncItem> syncItems, String username){
         List<String> deviceIds = syncItems
                 .stream()
                 .map(SyncItem::getDeviceId)
                 .toList();
 
-        return syncService.checkDeviceBelongsToUser(deviceIds, username);
+        return deviceService.checkDeviceBelongsToUser(deviceIds, username);
     }
 
 }
