@@ -1,5 +1,6 @@
 package com.vault.sync.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
@@ -8,6 +9,8 @@ public class Device {
     @Id
     String id;
     String owner;
+
+    @Column(columnDefinition = "TEXT")
     String public_key;
 
     public String getId() {

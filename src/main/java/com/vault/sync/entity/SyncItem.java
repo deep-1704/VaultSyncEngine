@@ -1,6 +1,7 @@
 package com.vault.sync.entity;
 
 import com.vault.sync.entity.compositekey.SyncItemId;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
@@ -12,6 +13,8 @@ public class SyncItem {
     String deviceId;
     @Id
     Long credentialId;
+
+    @Column(columnDefinition = "TEXT")
     String content;
 
     public SyncItem(String deviceId, Long credentialId, String content) {

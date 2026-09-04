@@ -1,5 +1,6 @@
 package com.vault.sync.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
@@ -11,6 +12,8 @@ public class ShareItem {
     String deviceId;
     @Id
     Long sharedCredId;
+
+    @Column(columnDefinition = "TEXT")
     String content;
 
     public ShareItem() {
