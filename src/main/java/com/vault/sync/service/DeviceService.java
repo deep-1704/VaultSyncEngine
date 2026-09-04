@@ -6,9 +6,11 @@ import com.vault.sync.repository.ShareItemRepository;
 import com.vault.sync.repository.SyncItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class DeviceService {
@@ -37,5 +39,14 @@ public class DeviceService {
             if(!Objects.equals(d.getOwner(), username)) return false;
         }
         return true;
+    }
+
+    public Optional<Device> getDeviceById(String deviceId){
+        return deviceRepository.findById(deviceId);
+    }
+
+    @Transactional
+    public void deleteDevice(Device device){
+        deviceRepository.delete(device);
     }
 }

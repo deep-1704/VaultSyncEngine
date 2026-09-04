@@ -3,6 +3,7 @@ package com.vault.sync.controller;
 import com.vault.sync.entity.Device;
 import com.vault.sync.entity.VaultUser;
 import com.vault.sync.service.AuthService;
+import com.vault.sync.utils.DeviceOwnershipException;
 import com.vault.sync.utils.DuplicateUsernameException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,12 @@ public class AuthController {
         // Spring security handles authentication
 
         String username = authentication.getName();
+        try {
+            service.validateDeviceOwnership(device.getId(), username);
+        } catch (DeviceOwnershipException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         device.setOwner(username);
         service.registerDevice(device);
         return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -35,6 +42,12 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<Void> signUp(@RequestBody UserDevice userDevice){
+        try {
+            service.validateDeviceOwnership(userDevice.device.getId(), userDevice.user.getUsername());
+        } catch (DeviceOwnershipException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         try{
             service.signupUser(userDevice.user);
         } catch (DuplicateUsernameException e){

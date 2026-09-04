@@ -1,15 +1,35 @@
 -- FK Constraints with ON DELETE CASCADE
 
 ALTER TABLE sync_item
+    DROP CONSTRAINT IF EXISTS fk_sync_item_credential;
+ALTER TABLE sync_item
     ADD CONSTRAINT fk_sync_item_credential
     FOREIGN KEY (credential_id)
     REFERENCES credential(id)
     ON DELETE CASCADE;
 
+ALTER TABLE sync_item
+    DROP CONSTRAINT IF EXISTS fk_sync_item_device;
+ALTER TABLE sync_item
+    ADD CONSTRAINT fk_sync_item_device
+    FOREIGN KEY (device_id)
+    REFERENCES device(id)
+    ON DELETE CASCADE;
+
+ALTER TABLE share_item
+    DROP CONSTRAINT IF EXISTS fk_share_item_shared_credential;
 ALTER TABLE share_item
     ADD CONSTRAINT fk_share_item_shared_credential
     FOREIGN KEY (shared_cred_id)
     REFERENCES shared_credential(id)
+    ON DELETE CASCADE;
+
+ALTER TABLE share_item
+    DROP CONSTRAINT IF EXISTS fk_share_item_device;
+ALTER TABLE share_item
+    ADD CONSTRAINT fk_share_item_device
+    FOREIGN KEY (device_id)
+    REFERENCES device(id)
     ON DELETE CASCADE;
 
 -- Trigger — sync_item → credential
