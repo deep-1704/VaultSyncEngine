@@ -1,12 +1,13 @@
 package com.vault.sync.entity;
 
+import com.vault.sync.entity.compositekey.ShareItemId;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 
 @Entity
-@IdClass(ShareItem.class)
+@IdClass(ShareItemId.class)
 public class ShareItem {
     @Id
     String deviceId;

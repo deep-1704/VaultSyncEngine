@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/share")
@@ -103,5 +104,33 @@ public class ShareController {
 
         shareService.deleteSharedCredInDevices(sharedCredId, deviceIds);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{deviceId}")
+    public ResponseEntity<List<ShareItem>> getShareItems(
+            @PathVariable String deviceId,
+            @RequestParam(required = false) Long sharedCredId,
+            Authentication authentication
+    ){
+        Optional<Device> deviceOpt = deviceService.getDeviceById(deviceId);
+        if(deviceOpt.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        Device device = deviceOpt.get();
+        if(!Objects.equals(device.getOwner(), authentication.getName())){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        if(sharedCredId != null){
+            Optional<ShareItem> shareItemOpt = shareService.getShareItem(deviceId, sharedCredId);
+            if(shareItemOpt.isEmpty()){
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(List.of(shareItemOpt.get()));
+        }
+
+        List<ShareItem> shareItems = shareService.getShareItems(deviceId);
+        return ResponseEntity.ok(shareItems);
     }
 }

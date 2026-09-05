@@ -12,6 +12,7 @@ public class SharedCredential {
     Long id;
     String owner;
 
+    public SharedCredential(){}
     public SharedCredential(String owner) {
         this.owner = owner;
     }

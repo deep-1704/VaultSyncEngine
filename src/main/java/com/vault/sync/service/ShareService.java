@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ShareService {
@@ -37,5 +38,13 @@ public class ShareService {
                 .map(id -> new ShareItemId(id, sharedCredId)).toList();
 
         shareItemRepository.deleteAllById(ids);
+    }
+
+    public List<ShareItem> getShareItems(String deviceId){
+        return shareItemRepository.findAllByDeviceId(deviceId);
+    }
+
+    public Optional<ShareItem> getShareItem(String deviceId, Long sharedCredId){
+        return shareItemRepository.findById(new ShareItemId(deviceId, sharedCredId));
     }
 }

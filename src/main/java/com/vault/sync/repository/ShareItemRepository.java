@@ -14,5 +14,7 @@ public interface ShareItemRepository extends JpaRepository<ShareItem, ShareItemI
     @Query("SELECT s.deviceId FROM ShareItem s WHERE s.sharedCredId = :sharedCredId")
     List<String> findDeviceIdsBySharedCredId(Long sharedCredId);
 
+    List<ShareItem> findAllByDeviceId(String deviceId);
+
     void deleteAllBySharedCredId(Long sharedCredId);
 }
