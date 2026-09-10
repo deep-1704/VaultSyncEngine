@@ -2,7 +2,9 @@ package com.vault.sync.repository;
 
 import com.vault.sync.entity.ShareItem;
 import com.vault.sync.entity.compositekey.ShareItemId;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -16,5 +18,7 @@ public interface ShareItemRepository extends JpaRepository<ShareItem, ShareItemI
 
     List<ShareItem> findAllByDeviceId(String deviceId);
 
+    @Modifying
+    @Transactional
     void deleteAllBySharedCredId(Long sharedCredId);
 }
