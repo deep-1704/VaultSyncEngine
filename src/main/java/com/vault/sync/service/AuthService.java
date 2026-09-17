@@ -48,4 +48,8 @@ public class AuthService {
     public void registerDevice(Device device){
         deviceRepository.save(device);
     }
+
+    public void deleteUser(String username){
+        userRepository.deleteById(username);
+    }
 }
