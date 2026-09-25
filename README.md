@@ -2,6 +2,8 @@
 
 A lightweight, high-performance synchronization backend for end-to-end encrypted (E2EE) password and credential vaults. Built with Spring Boot and PostgreSQL, it manages **multi-device synchronization** and **secure peer-to-peer credential sharing** using device-bound public keys without ever exposing plaintext secrets to the server.
 
+- **Tryout the app:** [APK Link](https://drive.google.com/file/d/1bHbyFUwpU5Y4wKQpGdFewlOO_xTXCgsZ/view?usp=drive_link)
+
 ---
 
 ### Engineering
@@ -21,8 +23,114 @@ A lightweight, high-performance synchronization backend for end-to-end encrypted
 - **Stateless HTTP Basic Auth**: Secure, simple authentication for protected endpoints.
 
 ---
+## Architecture Overview
 
-## Tech Stack & Prerequisites
+### Sync Architecture
+
+When synchronizing a credential across a user's registered devices:
+1. **Device A** queries the sync server for all registered devices belonging to the authenticated account.
+2. For every target device (including **Device B**), **Device A** generates an ephemeral AES-256 key, encrypts the credential JSON with AES-256-GCM, and encrypts the AES key using that target device's RSA public key (RSA-OAEP).
+3. The resulting hybrid encrypted packages are uploaded to the sync server.
+4. **Device B** requests pending sync payloads, decrypts the ephemeral AES key inside its own TEE using its non-exportable private key, decrypts the ciphertext with AES-256-GCM, and stores the credential locally.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Device A (Originating)
+    participant TEE_A as Device A Keystore (TEE)
+    participant S as Vault Sync Server
+    participant B as Device B (Target)
+    participant TEE_B as Device B Keystore (TEE)
+
+    Note over A,S: 1. Discover Registered Devices
+    A->>S: GET /device (HTTP Basic Auth)
+    S-->>A: Return Device List [Device B (PubKey_B), ...]
+
+    Note over A,TEE_A: 2. Decrypt Local Credential & Hybrid Encrypt
+    A->>TEE_A: Decrypt local credential using PrivKey_A
+    TEE_A-->>A: Plaintext Credential JSON
+    rect rgb(20, 30, 45)
+        Note over A: Generate ephemeral AES-256 key<br/>Encrypt payload with AES-256-GCM (random 12B IV)<br/>Encrypt AES key with PubKey_B (RSA-OAEP)
+    end
+
+    Note over A,S: 3. Upload Per-Device Encrypted Blobs
+    A->>S: POST /sync [{ deviceId: "B", content: PackedBlob_B }]
+    S-->>A: 200 OK (Sync confirmed, assigned credentialId)
+
+    Note over S,B: 4. Target Device Ingestion
+    B->>S: GET /sync/{deviceId_B}
+    S-->>B: Return Encrypted Items [{ credentialId, content: PackedBlob_B }]
+
+    Note over B,TEE_B: 5. Hardware Decryption & Local Storage
+    B->>B: Unpack [KeyLen | EncKey | IV | Ciphertext]
+    B->>TEE_B: Decrypt EncKey using PrivKey_B (RSA-OAEP)
+    TEE_B-->>B: Plaintext AES-256 Key
+    B->>B: Decrypt Ciphertext using AES-256-GCM
+    B->>TEE_B: Re-encrypt plaintext with PubKey_B for local storage
+    TEE_B-->>B: Local Ciphertext
+    B->>B: Insert / Update in local Room database (isSynced = true)
+```
+
+---
+
+### Share Architecture
+
+When sharing a credential peer-to-peer with another user:
+1. **Device A (Owner)** queries the sync server for the recipient user's registered devices.
+2. **Device A** decrypts the local credential, performs hybrid encryption using the recipient device's public key, and sends the payload to the server.
+3. The server validates that the sender is not sharing to themselves and creates or updates a `SharedCredential` record.
+4. **Device B (Recipient)** retrieves incoming shared payloads for its device ID, decrypts the payload via its secure hardware (TEE), and saves it marked as a received shared item.
+5. If the owner modifies the credential, **Device A** publishes the update to all active recipient devices (`publishSharedUpdate`). If revoked, the server deletes the share records and the recipient's device prunes the item upon synchronization.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Device A (Owner)
+    participant TEE_A as Device A Keystore (TEE)
+    participant S as Vault Sync Server
+    participant B as Device B (Recipient)
+    participant TEE_B as Device B Keystore (TEE)
+
+    Note over A,S: 1. Lookup Recipient Devices
+    A->>S: GET /device?username={recipientUsername}
+    S-->>A: Return Recipient Devices [Device B (PubKey_B)]
+
+    Note over A,TEE_A: 2. Decrypt Local & Hybrid Encrypt for Recipient
+    A->>TEE_A: Decrypt local credential using PrivKey_A
+    TEE_A-->>A: Plaintext Credential JSON
+    rect rgb(20, 30, 45)
+        Note over A: Generate ephemeral AES-256 key<br/>Encrypt payload with AES-256-GCM<br/>Encrypt AES key with Recipient PubKey_B (RSA-OAEP)
+    end
+
+    Note over A,S: 3. Dispatch Shared Credential
+    A->>S: POST /share/{recipientUsername} [{ deviceId: "B", sharedCredId: null, content: PackedBlob_B }]
+    S-->>A: 200 OK { id: sharedCredId, owner: "ownerUsername" }
+    A->>A: Update local entity (isShared = true, serverShareId)
+
+    Note over S,B: 4. Recipient Pulls Shared Items
+    B->>S: GET /share/{deviceId_B}
+    S-->>B: Return Shared Items [{ sharedCredId, content: PackedBlob_B }]
+
+    Note over B,TEE_B: 5. Recipient Hardware Decryption
+    B->>B: Unpack [KeyLen | EncKey | IV | Ciphertext]
+    B->>TEE_B: Decrypt EncKey using PrivKey_B (RSA-OAEP)
+    TEE_B-->>B: Plaintext AES-256 Key
+    B->>B: Decrypt Ciphertext with AES-256-GCM
+    B->>TEE_B: Re-encrypt plaintext with PubKey_B for local storage
+    TEE_B-->>B: Local Ciphertext
+    B->>B: Insert into Room (isShared = true, isReceived = true)
+
+    opt Revocation / Deletion
+        A->>S: DELETE /share/{sharedCredId}
+        S-->>A: 204 No Content (Deleted globally)
+        B->>S: GET /share/{deviceId_B}
+        S-->>B: Empty list / 404
+        B->>B: Prune revoked shared credential from local Room database
+    end
+```
+---
+
+## Tech Stack
 
 - **Java**: JDK 25 (if building from source)
 - **Framework**: Spring Boot 4.1.x, Spring Security, Spring Data JPA
