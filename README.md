@@ -3,6 +3,7 @@
 A lightweight, high-performance synchronization backend for end-to-end encrypted (E2EE) password and credential vaults. Built with Spring Boot and PostgreSQL, it manages **multi-device synchronization** and **secure peer-to-peer credential sharing** using device-bound public keys without ever exposing plaintext secrets to the server.
 
 - **Tryout the app:** [APK Link](https://drive.google.com/file/d/1bHbyFUwpU5Y4wKQpGdFewlOO_xTXCgsZ/view?usp=drive_link)
+- **App code:** [GitHub](https://github.com/deep-1704/Vault)
 
 ---
 
